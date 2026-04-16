@@ -1,0 +1,12 @@
+
+services:
+  stremio:
+    image: stremio/server:v4.20.17
+    container_name: stremio
+    ports:
+      # http server
+      - 11470:11470/tcp
+      # https server
+      - 12470:12470/tcp
+    restart: unless-stopped
+
