@@ -1,0 +1,17 @@
+---
+services:
+  obsidian:
+    image: lscr.io/linuxserver/obsidian:latest
+    container_name: obsidian
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - $HOME/ob/config:/config
+      - $HOME/Documents:/obsidian
+    ports:
+      - 6000:3000
+      - 6001:3001
+    shm_size: "1gb"
+    restart: unless-stopped
