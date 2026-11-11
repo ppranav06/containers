@@ -1,0 +1,21 @@
+
+{
+  "TCP": {
+    "443": {
+      "HTTPS": true
+    }
+  },
+  "Web": {
+    "tailscale-n8n.YOUR-TAILNET.ts.net:443": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://127.0.0.1:5678"
+        }
+      }
+    }
+  },
+  "AllowFunnel": {
+    "tailscale-n8n.YOUR-TAILNET.ts.net:443": false
+  }
+}
+
