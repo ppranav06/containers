@@ -1,61 +1,93 @@
+
 services:
+
+  # Tailscale network gateway
   tailscale:
     image: tailscale/tailscale:latest
-    container_name: tailscale
-    hostname: tailscale-n8n
-
+    container_name: n8n-tailscale
+    hostname: ${TAILSCALE_HOSTNAME}
     environment:
       - TS_AUTHKEY=${TAILSCALE_AUTH_KEY}
       - TS_AUTH_ONCE=true
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
       - TS_SERVE_CONFIG=/config/serve.json
-
     volumes:
       - ts_state:/var/lib/tailscale
       - ./tailscale:/config:ro
+    devices:
       - /dev/net/tun:/dev/net/tun
-
     cap_add:
       - NET_ADMIN
       - NET_RAW
-
+    networks:
+      - n8n_network
     restart: unless-stopped
 
+  # n8n application
   n8n:
     image: docker.n8n.io/n8nio/n8n
     container_name: n8n-app
-    restart: unless-stopped
-
     network_mode: service:tailscale
-
     depends_on:
       - tailscale
-
     environment:
-      - N8N_HOST=${TAILSCALE_FQDN}
+      - N8N_HOST=${N8N_DOMAIN}
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
-
-      # - N8N_EDITOR_BASE_URL=https://${TAILSCALE_FQDN}/
-      # - N8N_WEBHOOK_URL=https://${TAILSCALE_FQDN}/
-      - N8N_EDITOR_BASE_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
-      - N8N_WEBHOOK_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
+      # Private editor URL
+      - N8N_EDITOR_BASE_URL=https://${N8N_DOMAIN}
+      # Public webhook URL
+      - N8N_WEBHOOK_URL=https://${WEBHOOK_DOMAIN}/
+      # Reverse proxy
       - N8N_PROXY_HOPS=1
-
-      - NODE_ENV=production
+      # Security
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
-
+      # Runtime
+      - NODE_ENV=production
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
       - TZ=${GENERIC_TIMEZONE}
-
+      # File access
       - N8N_RESTRICT_FILE_ACCESS_TO=/files
-
     volumes:
       - n8n_data:/home/node/.n8n
       - ./local-files:/files
+    restart: unless-stopped
+
+  # Webhook-only reverse proxy
+  caddy:
+    image: caddy:2
+    container_name: n8n-caddy
+    networks:
+      - n8n_network
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - n8n
+    restart: unless-stopped
+
+  # Public Cloudflare Tunnel
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: n8n-cloudflared
+    command:
+      - tunnel
+      - --no-autoupdate
+      - run
+      - --token
+      - ${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - n8n_network
+    depends_on:
+      - caddy
+    restart: unless-stopped
 
 volumes:
   n8n_data:
   ts_state:
+
+networks:
+  n8n_network:
+    driver: bridge
 

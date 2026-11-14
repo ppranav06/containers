@@ -1,0 +1,19 @@
+
+:8080 {
+    @webhooks path \
+        /webhook \
+        /webhook/* \
+        /webhook-test \
+        /webhook-test/* \
+        /webhook-waiting \
+        /webhook-waiting/*
+
+    handle @webhooks {
+        reverse_proxy http://tailscale:5678
+    }
+
+    handle {
+        respond "Not Found" 404
+    }
+}
+
