@@ -1,0 +1,18 @@
+services:
+  mongodb-instance:
+    image: mongodb/mongodb-community-server:latest
+    container_name: mongodb-instance
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-supersecretpasswordwow}
+    env_file:
+      - ./.env
+    ports:
+      - 27017:27017
+    # hostname: mongodbhost
+    restart: always
+    volumes:
+      - mongodb_data:/data/db
+volumes:
+  mongodb_data:
+
